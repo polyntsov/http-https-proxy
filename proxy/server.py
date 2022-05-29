@@ -47,21 +47,25 @@ class Server():
             src_writer.close()
             logger.debug(f"Closed connection to {src_host}:{src_port}, incorrect HTTP request")
             return
-        with closing(src_writer):
-            logger.debug(f"Received from {src_host}:{src_port}:\n{data.decode()}")
-            logger.debug(f"Openning connection to {dest_addr}:{dest_port}")
-            dest_reader, dest_writer = await asyncio.open_connection(dest_addr, dest_port)
-            with closing(dest_writer):
-                if has_connect:
-                    src_writer.write(b'HTTP/1.1 200 OK\r\n\r\n')
-                    await src_writer.drain()
-                else:
-                    dest_writer.write(data)
-                    await dest_writer.drain()
-                await Server.pipe_data(src_reader, src_writer, dest_reader, dest_writer)
-            await dest_writer.wait_closed()
+        try:
+            with closing(src_writer):
+                logger.debug(f"Received data from {src_host}:{src_port}:\n{data.decode()}")
+                logger.debug(f"Openning connection to {dest_addr}:{dest_port}")
+                dest_reader, dest_writer = await asyncio.open_connection(dest_addr, dest_port)
+                with closing(dest_writer):
+                    if has_connect:
+                        src_writer.write(b'HTTP/1.1 200 OK\r\n\r\n')
+                        await src_writer.drain()
+                    else:
+                        dest_writer.write(data)
+                        await dest_writer.drain()
+                    await Server.pipe_data(src_reader, src_writer, dest_reader, dest_writer)
+                await dest_writer.wait_closed()
+        except BaseException as e:
+            logger.info(f'{str(e)}')
+        finally:
+            await src_writer.wait_closed()
             logger.debug(f"Closed connection to {dest_addr}:{dest_port}")
-        await src_writer.wait_closed()
 
     def __init__(self, host, port):
         self.host = host
