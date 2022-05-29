@@ -9,7 +9,6 @@ class Server():
         parser = HttpParser()
         parser.execute(data, len(data))
         has_connect = parser.get_method() == 'CONNECT'
-        print(parser.get_method())
         dest_port = 80
         if has_connect:
             dest_addr = parser.get_url()
@@ -46,7 +45,7 @@ class Server():
             has_connect, dest_addr, dest_port = Server.parse_http(data)
         except (BaseException):
             src_writer.close()
-            logger.debug(f"Closed connection to {src_host}:{src_port}, incorect HTTP request")
+            logger.debug(f"Closed connection to {src_host}:{src_port}, incorrect HTTP request")
             return
         with closing(src_writer):
             logger.debug(f"Received from {src_host}:{src_port}:\n{data.decode()}")
@@ -60,13 +59,14 @@ class Server():
                     dest_writer.write(data)
                     await dest_writer.drain()
                 await Server.pipe_data(src_reader, src_writer, dest_reader, dest_writer)
+            await dest_writer.wait_closed()
             logger.debug(f"Closed connection to {dest_addr}:{dest_port}")
+        await src_writer.wait_closed()
 
     def __init__(self, host, port):
         self.host = host
         self.port = port
         logger.setup_logger(__name__)
-
 
     async def start_impl(self):
         server = await asyncio.start_server(Server.handle_conn, self.host, self.port)
