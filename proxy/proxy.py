@@ -1,8 +1,8 @@
 from proxy import logger
 from proxy import server
 
-def start():
+def start(host, ip):
     logger.setup_logger(__name__)
     logger.info('Proxy server started')
-    s = server.Server('localhost', 1234)
+    s = server.Server(host, ip)
     s.start()
