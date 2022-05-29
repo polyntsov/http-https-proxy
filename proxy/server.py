@@ -69,11 +69,18 @@ class Server():
         logger.setup_logger(__name__)
 
     async def start_impl(self):
-        server = await asyncio.start_server(Server.handle_conn, self.host, self.port)
+        try:
+            server = await asyncio.start_server(Server.handle_conn, self.host, self.port)
+        except BaseException as e:
+            logger.info(f'{str(e)}')
+            return
         logger.info(f'Server started on: {self.host}:{self.port}')
 
         async with server:
             await server.serve_forever()
 
     def start(self):
-        asyncio.run(self.start_impl())
+        try:
+            asyncio.run(self.start_impl())
+        except KeyboardInterrupt:
+            logger.info('Caught KeyboardInterrupt, stopping the server...')
